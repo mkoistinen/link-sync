@@ -19,8 +19,10 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pytest pip-tools
-          if [ -f requirements.in ]; then pip-compile; pip-sync; fi
+          pip install pip-tools
+          pip-compile -o requirements.txt
+          pip-compile -o requirements-dev.txt
+          pip-sync requirements.txt requirements-dev.txt
       - name: Test with pytest
         run: |
           python -m pytest
