@@ -12,7 +12,7 @@ from .printers import IDLE_STATES, Printer
 from .utilities import gen_files_from_path
 
 
-__VERSION__ = '0.1.2'
+__VERSION__ = '0.2.1'
 
 
 logger = logging.getLogger(__name__)
