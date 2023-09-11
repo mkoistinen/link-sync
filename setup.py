@@ -39,7 +39,7 @@ setup(
     license='Apache-2.0',
     classifiers=[
         'Development Status :: 3 - Alpha',
-        'License :: OSI Approved :: Apache Software License, Version 2.0',
+        'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
