@@ -66,149 +66,105 @@ TODO:
 - [ ] Optionally, copy files that exist on a printer that are unique back to
       the local filesystem.
 
+## Example usage
 
-## Program Structure
+### Scenario
 
-```mermaid
-classDiagram
+The author maintains a set of files on his local workstation's filesystem at:
 
-    class FileNode {
-        +child_nodes : Set[FileNode]
-        +children : List[Dict] or None
-        +display_name : str
-        +full_display_path : str
-        +full_short_path : str
-        +is_dir : bool
-        +m_timestamp : int or None
-        +mtime_as_date : datetime
-        +name : str
-        +parent_node : FileNode or None
-        +ro : bool
-        +type : str
-        #kwargs : Dict
-        #short_name : str
-    }
+    ~/master_farm_files/usb
 
-    class AbstractApi {
-        +name : str
-        +host : str
-        +username : str
-        +password : str
-        +status_response()
-        +files_response()
-    }
+Within this directory, he adds all his GCode organized into directories, if
+he so desires. He knows that PrusaLink has limits on how long filepaths can be
+on the printer, so he keeps the directories shallow and with reasonably short
+names. For example a directory structure like this:
 
-    class ApiResponse {
-        +status_code : str
-        +payload : object or None
-        +success : bool
-    }
+    ~/master_farm_files/usb/
+        apple/
+            prusament pla/
+                apple_0.4n_0.15mm_PLA_MK4IS_4h52m.gcode
+            prusament petg/
+                apple_0.4n_0.15mm_PETG_MK4IS_4h58m.gcode
+        banana/
+            prusament pla/
+                banana_0.4n_0.15mm_PLA_MK4IS_2h12m.gcode
+            prusament petg/
+                banana_0.4n_0.15mm_PETG_MK4IS_2h13m.gcode
 
-    class PrusaLinkApi {
-        +name : str
-        +host : str
-        +username : str
-        +password : str
-        #auth
-        #session
-        +status_response() : ApiResponse
-        +files_response() : ApiResponse
-    }
+The author has a bank of 4 Original Prusa MK4 printers. He creates a
+configuration file `~/printers.yml` somewhere that contains their details
+as follows:
 
-    class Storage {
-        +name : str
-        +api_key : str
-        +api : PrusaLinkApi
-        +root_node : FileNode
-        #build_storage()
-        +create_remote_folder()
-        +delete_file(): bool
-        #get_root_node() : FileNode
-        +gen_nodes() : Generator[FileNode]
-        +get_node_for_display_path() : FileNode
-        +get_node_for_short_path() : FileNode
-        +get_shorter_path() : Path
-        +reload()
-        +upload_file() : bool
-    }
-
-    class Printer {
-        +name : str
-        +printer_type : str
-        +storage : Storage
-        +gen_missing_or_stale_files() : Generator[Tuple[Path, Path]]
-        +get_excess_files() : Set[Path]
-        +get_state() : State
-    }
-
-    Printer --* Storage : Composition
-    Storage --o FileNode : Aggregates
-    Storage --* PrusaLinkApi : Composition
-    PrusaLinkApi --|> AbstractApi : Implements
-
-    AbstractApi -- ApiResponse : Associates
-    PrusaLinkApi -- ApiResponse : Associates
+``` yml
+Ash:
+    printer_type: MK4
+    host: http://192.168.0.1
+    username: maker
+    password: password1
+Bishop:
+    printer_type: MK4
+    host: http://192.168.0.2
+    username: maker
+    password: password2
+Call:
+    printer_type: MK4
+    host: http://192.168.0.3
+    username: maker
+    password: password3
+David:
+    printer_type: MK4
+    host: http://192.168.0.4
+    username: maker
+    password: password4
 ```
 
-### The `__main__` module
+Then, the author creates a virtual Python environment and installs `link-sync`.
 
-There is certain UI-related work performed in the `link_sync` package's
-`__main__` module including the reading of a configuration file to instantiate
-`Printer` instances. It is also here that a scan of the local "master"
-filesystem is performed before a thread-pool is created to operate on as many
-printers as there are local CPU cores at a time.
+    ❯ pip install link-sync
 
-The primary entry point is the `process()` function which manages reading the
-local "master" file-structure and managing the pool of threads which all run
-a `_sync()` function.
+This Python package installs a command line utility called `link-sync` which
+can be used like so:
 
+    ❯ link-sync --config ~/printers.yml --source ~/master_farm_files/usb --destination /usb/
 
-### The `Printer` class
+The program will show a preview of what *would* happen if the `--execute` option was provided.
 
-This represents a single printer instance. The printer will instantiate a
-`Storage` instance on initialization, passing in all the credentials required
-for an API instance.
+If the operations look correct, rerun the program with the `--execute` argument:
 
+    ❯ link-sync --config ~/printers.yml --source ~/master_farm_files/usb --destination /usb/ --execute
 
-### The `Storage` class
+And the files will be copied across all printers at the same time.
 
-The Storage class manages its own `PrusaLinkApi` instance the collection of
-files that are all linked to the `root_node` of the Printer's storage. For
-example, on Prusa MK4 printers, this is an object with the name `usb`. From
-here, further FileObjects are linked as `child_nodes`, and so on representing
-the whole file-system.
+Many of the arguments can be abbreviated. For example the above line could be:
 
-Any given file references its parent in `FileNode` `parent_node` and
-directory ("FOLDER") objects contain their children as a set of `FileNode`s
-in `child_nodes`.
+    ❯ link-sync -c ~/printers.yml -s ~/master_farm_files/usb -d /usb/ -g
 
+Note the short version of `--execute` is `-g` for "go".
 
-### The `FileNode` class
+You can use the built-in help function to see other options:
 
-This represents a single object on the remote storage. However, FileNode
-instances are not natively, but can be doubly linked together by logic in the
-`Storage` class.
+```
+❯ link-sync --help
+usage: link_sync [-h] [-c CONFIG_PATH] [-p [INCLUDED_PRINTERS ...]] [-x [EXCLUDED_PRINTERS ...]] -s SOURCE_PATH [-d DESTINATION_PATH] [-r RELATIVE_TO_PATH] [-g] [--ignore-state]
 
-
-### The `PrusaLinkApi` class
-
-This is a class that subclasses the abstract `AbstractApi` class. THe idea is
-that other types of APIs could also implement the required methods of the
-`AbstractApi` in the future (`AbstractApi` should probably be a Python
-Protocol instead).
-
-The `PrusaLinkApi` implements the required methods specifically for PrusaLink
-0.7.0 which is under fairly rapid development/evolution.
-
-Although this will likely change in the near future, the only required methods
-are to handle requests to PrusaLink's `files` and `status` endpoints using
-various HTTP verbs (GET, PUT, and DELETE, specifically.)
-
-
-### The `ApiResponse` class
-
-This is a small data class to hold an API response's status_code and
-deserialized JSON payload with some helper methods.
+options:
+  -h, --help            show this help message and exit
+  -c CONFIG_PATH, --config CONFIG_PATH
+                        Path to a YAML or JSON file containing the configuration of all printers. Default is `printers.yml` in the current working directory.
+  -p [INCLUDED_PRINTERS ...], --printer [INCLUDED_PRINTERS ...]
+                        Explicitly name printers to INCLUDE for processing. By default, all idle (see the `--ignore-state` option) printers found in the will configuration be processed.
+  -x [EXCLUDED_PRINTERS ...], --exclude [EXCLUDED_PRINTERS ...]
+                        Explicitly name printers to EXCLUDE from processing. By default, all idle (see the `--ignore-state option) printers found in the configuration will be processed. This option will be ignored if the `--printer`
+                        option is used.
+  -s SOURCE_PATH, --source SOURCE_PATH
+                        The local path to the root of the files that should be synced.
+  -d DESTINATION_PATH, --destination DESTINATION_PATH
+                        The relative path within the printers' storage where the source files should be synchronized. Default is the root of the printers' storage.
+  -r RELATIVE_TO_PATH, --relative-to RELATIVE_TO_PATH
+                        If provided, the SOURCE_PATH file paths will consider only the portion of the path that is relative to this given path. If not provided, it is set to the SOURCE_PATH itself.
+  -g, --go              Make the changes (do not do a dry-run).
+  --ignore-state        If set, all printers, including busy printers, will be processed. Use with caution as some printers may experience print failures when printing and API calls are received and processed.
+  ```
 
 
 Copyright (c) 2023, Martin Koistinen
