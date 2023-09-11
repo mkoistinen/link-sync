@@ -145,26 +145,45 @@ You can use the built-in help function to see other options:
 
 ```
 ❯ link-sync --help
-usage: link_sync [-h] [-c CONFIG_PATH] [-p [INCLUDED_PRINTERS ...]] [-x [EXCLUDED_PRINTERS ...]] -s SOURCE_PATH [-d DESTINATION_PATH] [-r RELATIVE_TO_PATH] [-g] [--ignore-state]
+usage: link_sync [-h] [-c CONFIG_PATH] [-p [INCLUDED_PRINTERS ...]]
+                 [-x [EXCLUDED_PRINTERS ...]] -s SOURCE_PATH
+                 [-d DESTINATION_PATH] [-r RELATIVE_TO_PATH] [-g]
+                 [--ignore-state]
 
 options:
   -h, --help            show this help message and exit
   -c CONFIG_PATH, --config CONFIG_PATH
-                        Path to a YAML or JSON file containing the configuration of all printers. Default is `printers.yml` in the current working directory.
+                        Path to a YAML or JSON file containing the
+                        configuration of all printers. Default is
+                        `printers.yml` in the current working directory.
   -p [INCLUDED_PRINTERS ...], --printer [INCLUDED_PRINTERS ...]
-                        Explicitly name printers to INCLUDE for processing. By default, all idle (see the `--ignore-state` option) printers found in the will configuration be processed.
+                        Explicitly name printers to INCLUDE for processing. By
+                        default, all idle (see the `--ignore-state` option)
+                        printers found in the will configuration be processed.
   -x [EXCLUDED_PRINTERS ...], --exclude [EXCLUDED_PRINTERS ...]
-                        Explicitly name printers to EXCLUDE from processing. By default, all idle (see the `--ignore-state option) printers found in the configuration will be processed. This option will be ignored if the `--printer`
-                        option is used.
+                        Explicitly name printers to EXCLUDE from processing.
+                        By default, all idle (see the `--ignore-state option)
+                        printers found in the configuration will be processed.
+                        This option will be ignored if the `--printer` option
+                        is used.
   -s SOURCE_PATH, --source SOURCE_PATH
-                        The local path to the root of the files that should be synced.
+                        The local path to the root of the files that should be
+                        synced.
   -d DESTINATION_PATH, --destination DESTINATION_PATH
-                        The relative path within the printers' storage where the source files should be synchronized. Default is the root of the printers' storage.
+                        The relative path within the printers' storage where
+                        the source files should be synchronized. Default is
+                        the root of the printers' storage.
   -r RELATIVE_TO_PATH, --relative-to RELATIVE_TO_PATH
-                        If provided, the SOURCE_PATH file paths will consider only the portion of the path that is relative to this given path. If not provided, it is set to the SOURCE_PATH itself.
+                        If provided, the SOURCE_PATH file paths will consider
+                        only the portion of the path that is relative to this
+                        given path. If not provided, it is set to the
+                        SOURCE_PATH itself.
   -g, --go              Make the changes (do not do a dry-run).
-  --ignore-state        If set, all printers, including busy printers, will be processed. Use with caution as some printers may experience print failures when printing and API calls are received and processed.
-  ```
+  --ignore-state        If set, all printers, including busy printers, will be
+                        processed. Use with caution as some printers may
+                        experience print failures when printing and API calls
+                        are received and processed.
+```
 
 
 Copyright (c) 2023, Martin Koistinen
