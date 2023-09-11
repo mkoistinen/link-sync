@@ -1,0 +1,6 @@
+[flake8]
+ignore = D100, D104, D107, D203, F405, W503, W504
+exclude = .git, __pycache__, local
+max-complexity = 20
+max-line-length = 79
+import-order-style = google

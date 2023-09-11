@@ -1,0 +1,7 @@
+coverage
+flake8
+flake8-docstrings
+flake8-import-order
+mypy
+pytest
+pytest-mock

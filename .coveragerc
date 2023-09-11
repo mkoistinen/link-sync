@@ -1,0 +1,7 @@
+[run]
+source = link_sync
+branch = True
+
+[report]
+exclude_lines =
+    pragma: no cover

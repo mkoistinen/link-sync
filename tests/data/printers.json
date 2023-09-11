@@ -1,0 +1,14 @@
+{
+    "printer_a": {
+        "host": "http://127.0.0.1",
+        "username": "maker_a",
+        "password": "password_a",
+        "printer_type": "MK4"
+    },
+    "printer_b": {
+        "host": "http://127.0.0.2",
+        "username": "maker_b",
+        "password": "password_b",
+        "printer_type": "XL"
+    }
+}

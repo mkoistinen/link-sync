@@ -1,0 +1,5 @@
+include AUTHORS.txt
+include README.md
+global-include requirements.in
+recursive-include link_sync *
+recursive-exclude * *.pyc
