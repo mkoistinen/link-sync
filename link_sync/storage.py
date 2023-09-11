@@ -2,7 +2,7 @@ from datetime import datetime
 from functools import cached_property
 import logging
 from pathlib import Path
-from typing import Generator, Optional, Set
+from typing import Generator, Optional, Set, Union
 
 from .apis import ApiException, PrusaLinkApi
 
@@ -52,7 +52,7 @@ class FileNode:
         self.display_name = display_name
 
         self._kwargs = kwargs
-        self._short_name: str | None = None
+        self._short_name: Optional[str] = None
 
         self.child_nodes: Set = set()
         self.parent_node = parent_node
@@ -89,7 +89,7 @@ class FileNode:
             return f"/{self.display_name or self.name}"
 
     @cached_property
-    def m_datetime(self) -> datetime | None:
+    def m_datetime(self) -> Union[datetime, None]:
         """Return the modificiation date of the file as a datetime."""
         if self.m_timestamp:
             return datetime.utcfromtimestamp(self.m_timestamp)
@@ -216,7 +216,8 @@ class Storage:
         for child_node in file_node.child_nodes:
             yield from self.gen_nodes(child_node)
 
-    def get_node_for_display_path(self, path: Path | str) -> FileNode | None:
+    def get_node_for_display_path(self, path: Union[Path, str]
+                                  ) -> Union[FileNode, None]:
         """
         Given a `path`, return the FileNode representing it, if any.
 
@@ -239,7 +240,8 @@ class Storage:
                 return file_node
         return None
 
-    def get_node_for_short_path(self, path: Path | str) -> FileNode | None:
+    def get_node_for_short_path(self, path: Union[Path, str]
+                                ) -> Union[FileNode, None]:
         """
         Given a `path`, return the FileNode representing it, if any.
 
@@ -262,7 +264,7 @@ class Storage:
                 return file_node
         return None
 
-    def get_shorter_path(self, remote_path: Path | str) -> Path:
+    def get_shorter_path(self, remote_path: Union[Path, str]) -> Path:
         """
         Shorten the given remote_path using as many 8.3 components as possible.
 
@@ -288,7 +290,7 @@ class Storage:
         # Looks like this is a completely new path...
         return remote_path
 
-    def create_remote_folder(self, remote_path: Path | str):
+    def create_remote_folder(self, remote_path: Union[Path, str]):
         """
         Create the given `remote_path` if ncessary. Return the final node.
 
@@ -320,8 +322,8 @@ class Storage:
         else:
             return True
 
-    def upload_file(self, local_path: Path | str, remote_path: Path | str
-                    ) -> bool:
+    def upload_file(self, local_path: Union[Path, str],
+                    remote_path: Union[Path, str]) -> bool:
         """
         Upload a new file into storage from `local_path`.
 

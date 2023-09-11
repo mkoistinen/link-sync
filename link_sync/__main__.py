@@ -4,7 +4,7 @@ from itertools import chain
 import logging
 from multiprocessing import cpu_count
 from pathlib import Path
-from typing import Iterable, Optional, Set
+from typing import Iterable, Optional, Set, Union
 
 from rich import print
 
@@ -110,12 +110,12 @@ def _sync(*, printer: Printer,
 
 
 def process(*,
-            config_path: Path | str,
-            included_printers: Iterable[str] | None,
-            excluded_printers: Iterable[str] | None,
-            source_path: Path | str,
-            relative_to_path: Path | str | None,
-            destination_path: Path | str,
+            config_path: Union[Path, str],
+            included_printers: Optional[Iterable[str]],
+            excluded_printers: Optional[Iterable[str]],
+            source_path: Union[Path, str],
+            relative_to_path: Optional[Union[Path, str]],
+            destination_path: Optional[Union[Path, str]],
             suffixes: Optional[Iterable[str]] = None,
             ignore_state: bool = False,
             execute: bool = False,

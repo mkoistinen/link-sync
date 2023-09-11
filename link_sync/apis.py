@@ -3,7 +3,7 @@ from http import HTTPStatus
 from io import BufferedReader
 import logging
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 from urllib.parse import quote
 
 import requests
@@ -27,14 +27,14 @@ class ApiResponse:
     ----------
     status_code : int
         The HTTP status code of the response.
-    payload : object | None, default None
+    payload : object or None, default None
         Optional. The deserialized JSON response as an `object` (Typically
         a dictionary or list).
     """
 
     __slots__ = 'status_code', 'payload'
 
-    def __init__(self, status_code: int, payload: object | None = None):
+    def __init__(self, status_code: int, payload: Optional[object] = None):
         self.status_code = status_code
         self.payload = payload
 
@@ -69,7 +69,7 @@ class AbstractApi(metaclass=ABCMeta):
                        *,
                        data: Optional[BufferedReader] = None,
                        headers: Optional[Dict[str, str]],
-                       path: Path | str,
+                       path: Union[Path, str],
                        ) -> ApiResponse:
         """Return the deserialized files payload as a dictionary."""
 
@@ -106,7 +106,7 @@ class PrusaLinkApi(AbstractApi):
                        *,
                        data: Optional[BufferedReader] = None,
                        headers: Optional[Dict[str, str]] = None,
-                       path: Path | str,
+                       path: Union[Path, str],
                        ) -> ApiResponse:
         """Return the deserialized files API status and payload."""
         if not headers:

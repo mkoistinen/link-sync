@@ -3,7 +3,7 @@ from enum import auto, Enum
 import json
 import logging
 from pathlib import Path
-from typing import Generator, Iterable, List, Set
+from typing import Generator, Iterable, List, Set, Union
 
 import yaml
 
@@ -79,7 +79,7 @@ class Printer:
     """
 
     @classmethod
-    def from_config(cls, config_file_path: Path | str
+    def from_config(cls, config_file_path: Union[Path, str]
                     ) -> List['Printer']:
         """
         Return a list of Printer instances from the given configuation file.
@@ -144,7 +144,7 @@ class Printer:
         """Return an instance representation for this printer."""
         return f"<{str(self)}>"
 
-    def get_state(self) -> State | None:
+    def get_state(self) -> Union[State, None]:
         """Get the printer's status from its API."""
         response = self.storage.api.status_response()
         if response.success and isinstance(response.payload, dict):
