@@ -30,11 +30,7 @@ class State(Enum):
 
 
 # It should be safe to interact with the printer's API while in these states.
-IDLE_STATES = {
-    State.FINISHED,
-    State.IDLE,
-    State.READY
-}
+IDLE_STATES = {State.FINISHED, State.IDLE, State.READY}
 
 
 class MissingOrStaleFile:
@@ -51,10 +47,9 @@ class MissingOrStaleFile:
         If True, the file is returned because it is out-of-date.
     """
 
-    __slots__ = ('local_path', 'remote_path', 'is_stale')
+    __slots__ = ("local_path", "remote_path", "is_stale")
 
-    def __init__(self, local_path: Path, remote_path: Path,
-                 is_stale: bool):
+    def __init__(self, local_path: Path, remote_path: Path, is_stale: bool):
         self.local_path = local_path
         self.remote_path = remote_path
         self.is_stale = is_stale
@@ -79,8 +74,9 @@ class Printer:
     """
 
     @classmethod
-    def from_config(cls, config_file_path: Union[Path, str]
-                    ) -> List['Printer']:
+    def from_config(
+        cls, config_file_path: Union[Path, str]
+    ) -> List["Printer"]:
         """
         Return a list of Printer instances from the given configuation file.
 
@@ -105,36 +101,43 @@ class Printer:
         FileNotFoundError
             If the given `config_file_path` does not seem to exist.
         """
+        json_suffixes = [".jso", ".jsn", ".json"]
+        yaml_suffixes = [".yml", ".yaml"]
         if not isinstance(config_file_path, Path):
             config_file_path = Path(config_file_path)
         if config_file_path.exists():
-            with open(config_file_path, mode='r') as config_file:
-                if config_file_path.suffix.lower() in ['.jso', '.jsn', '.json']:  # noqa
+            with open(config_file_path, mode="r") as config_file:
+                if config_file_path.suffix.lower() in json_suffixes:
                     printer_list = json.load(config_file)
-                elif config_file_path.suffix.lower() in ['.yml', '.yaml']:
-                    """Do YAML loading here."""
+                elif config_file_path.suffix.lower() in yaml_suffixes:
                     printer_list = yaml.safe_load(config_file)
                 else:
                     raise PrinterException(
-                        'Only JSON and YAML configuration files are supported.'
+                        "Only JSON and YAML configuration files are supported."
                     )
         else:
             raise FileNotFoundError(
-                'The given `config_file_path` does not exist.')
+                "The given `config_file_path` does not exist."
+            )
 
         return [
-            cls(name=name, **config)
-            for name, config in printer_list.items()
+            cls(name=name, **config) for name, config in printer_list.items()
         ]
 
-    def __init__(self, *, host: str, name: str, password: str,
-                 printer_type: str, username: str):
+    def __init__(
+        self,
+        *,
+        host: str,
+        name: str,
+        password: str,
+        printer_type: str,
+        username: str,
+    ):
         self.name = name
         self.printer_type = printer_type
-        self.storage = Storage(name=self.name,
-                               host=host,
-                               username=username,
-                               password=password)
+        self.storage = Storage(
+            name=self.name, host=host, username=username, password=password
+        )
 
     def __str__(self):
         """Return a human-consumable representation for this printer."""
@@ -149,7 +152,7 @@ class Printer:
         response = self.storage.api.status_response()
         if response.success and isinstance(response.payload, dict):
             try:
-                state = response.payload['printer']['state'].upper()
+                state = response.payload["printer"]["state"].upper()
             except Exception:
                 logger.warning(f"Unable to get printer state for {self}'s.")
                 return None
@@ -160,6 +163,7 @@ class Printer:
                     logger.warning(f'Unrecognized printer State: "{state}"')
                 else:
                     return printer_state
+        return None
 
     def gen_missing_or_stale_files(
         self,
@@ -192,37 +196,41 @@ class Printer:
         for local_file in local_files:
             relative_file = local_file.relative_to(relative_to_path)
             if destination_path:
-                remote_path = Path(self.storage.root_node.full_display_path,
-                                   destination_path, relative_file)
+                remote_path = Path(
+                    self.storage.root_node.full_display_path,
+                    destination_path,
+                    relative_file,
+                )
             else:
-                remote_path = Path(self.storage.root_node.full_display_path,
-                                   relative_file)
+                remote_path = Path(
+                    self.storage.root_node.full_display_path, relative_file
+                )
             if node := self.storage.get_node_for_display_path(remote_path):
                 # Looks like the file already exists, check if it is stale.
                 # Stale requires that the remote_file be more than 60 seconds
                 # older than the local file.
-                local_mt = datetime.fromtimestamp(
-                    local_file.stat().st_mtime)
+                local_mt = datetime.fromtimestamp(local_file.stat().st_mtime)
                 if node_mt := node.m_datetime:
                     if local_mt > node_mt + timedelta(seconds=60):
                         yield MissingOrStaleFile(
                             local_path=local_file,
                             remote_path=remote_path,
-                            is_stale=True
+                            is_stale=True,
                         )
             else:
                 yield MissingOrStaleFile(
                     local_path=local_file,
                     remote_path=remote_path,
-                    is_stale=False
+                    is_stale=False,
                 )
 
-    def get_excess_files(self,
-                         *,
-                         destination_path: Path,
-                         local_files: Iterable[Path],
-                         relative_to_path: Path
-                         ) -> Set[Path]:
+    def get_excess_files(
+        self,
+        *,
+        destination_path: Path,
+        local_files: Iterable[Path],
+        relative_to_path: Path,
+    ) -> Set[Path]:
         """
         Return the set of nodes that are in excess of what is in `local_files`.
 
@@ -242,11 +250,13 @@ class Printer:
             local files.
         """
         # If not given an absolute path, make it relative to the root_node.
-        if destination_path.absolute:
+        if destination_path.absolute():
             dest_node_path = str(destination_path)
         else:
-            dest_node_path = (f'{self.storage.root_node.full_display_path}/'
-                              f'{destination_path}')
+            dest_node_path = (
+                f"{self.storage.root_node.full_display_path}/"
+                f"{destination_path}"
+            )
 
         if dest_node := self.storage.get_node_for_display_path(dest_node_path):
             # Start with all the nodes (as their full_display_names).

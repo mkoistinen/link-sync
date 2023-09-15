@@ -12,19 +12,21 @@ from .printers import IDLE_STATES, Printer
 from .utilities import gen_files_from_path
 
 
-__VERSION__ = '0.2.1'
+__VERSION__ = "0.2.2"
 
 
 logger = logging.getLogger(__name__)
 
 
-def _sync(*, printer: Printer,
-          local_files: Iterable[Path],
-          relative_to_path: Path,
-          destination_path: Path,
-          ignore_state: bool = False,
-          execute: bool = False,
-          ) -> Printer:
+def _sync(
+    *,
+    printer: Printer,
+    local_files: Iterable[Path],
+    relative_to_path: Path,
+    destination_path: Path,
+    ignore_state: bool = False,
+    execute: bool = False,
+) -> Printer:
     """
     Perform actions to synchronize the local_files with the printer.
 
@@ -55,31 +57,54 @@ def _sync(*, printer: Printer,
     # Do not disturb busy printers with heavy file operations.
     printer_state = printer.get_state()
     if printer_state not in IDLE_STATES and not ignore_state:
-        print(f'[yellow][bold]{printer.name}[/bold] is currently in state {printer_state} and will not be accessed.[/yellow]')  # noqa
+        print(
+            f"[yellow][bold]{printer.name}[/bold] is currently in state "
+            f"{printer_state} and will not be accessed.[/yellow]"
+        )
         return printer
 
     # Get an iterable of the missing files for this printer...
     excess_files: Set[Path] = printer.get_excess_files(
         local_files=local_files,
         destination_path=destination_path,
-        relative_to_path=relative_to_path
+        relative_to_path=relative_to_path,
     )
-    missing_files = set(printer.gen_missing_or_stale_files(
-        local_files=local_files,
-        destination_path=destination_path,
-        relative_to_path=relative_to_path
-    ))
+    missing_files = set(
+        printer.gen_missing_or_stale_files(
+            local_files=local_files,
+            destination_path=destination_path,
+            relative_to_path=relative_to_path,
+        )
+    )
 
     # Print out what we're going to do (if `execute==True`)
     num_excess = len(excess_files)
     num_upload = len([f for f in missing_files if f.is_stale is False])
     num_stale = len([f for f in missing_files if f.is_stale is True])
-    print(f'[bold]{printer.name}[/bold] - There {"is" if num_excess == 1 else "are"} [bold]{num_excess} file{"s" if num_excess != 1 else ""} to delete[/bold], [bold]{num_upload} missing to upload[/bold] and [bold]{num_stale} stale file{"s" if num_stale != 1 else ""} to refresh[/bold].', flush=True)  # noqa
+    verb = "is" if num_excess == 1 else "are"
+    plural_excess = "s" if num_excess != 1 else ""
+    plural_stale = "s" if num_stale != 1 else ""
+    print(
+        f"[bold]{printer.name}[/bold] - There {verb} [bold]{num_excess} file"
+        f"{plural_excess} to delete[/bold], [bold]{num_upload} missing to "
+        f"upload[/bold] and [bold]{num_stale} stale file{plural_stale} to "
+        f"refresh[/bold].",
+        flush=True,
+    )
     for missing in missing_files:
-        print(f"To be [bold]{'refreshed' if missing.is_stale else 'uploaded'}[/bold] to [bold]{printer.name}[/bold]: [magenta]{missing.local_path}[/magenta] => [magenta]{missing.remote_path}[/magenta].", flush=True)  # noqa
+        print(
+            f"To be [bold]{'refreshed' if missing.is_stale else 'uploaded'}"
+            f"[/bold] to [bold]{printer.name}[/bold]: [magenta]"
+            f"{missing.local_path}[/magenta] => [magenta]"
+            f"{missing.remote_path}[/magenta].",
+            flush=True,
+        )
     for excess in excess_files:
-        print(f"To be [bold]deleted[/bold] from [bold]{printer.name}[/bold]: [magenta]{excess}[/magenta].",  # noqa
-              flush=True)
+        print(
+            f"To be [bold]deleted[/bold] from [bold]{printer.name}[/bold]: "
+            f"[magenta]{excess}[/magenta].",
+            flush=True,
+        )
     if not execute:
         return printer
 
@@ -87,39 +112,68 @@ def _sync(*, printer: Printer,
     for excess_path in excess_files:
         if node := printer.storage.get_node_for_display_path(excess_path):
             if printer.storage.delete_file(node):
-                print(f'File [magenta]{excess_path}[/magenta] [green]successfully [bold]deleted[/bold][/green] from printer: [bold]{printer.name}[/bold].', flush=True)  # noqa
+                print(
+                    f"File [magenta]{excess_path}[/magenta] [green]"
+                    f"successfully [bold]deleted[/bold][/green] from printer: "
+                    f"[bold]{printer.name}[/bold].",
+                    flush=True,
+                )
             else:
-                print(f'File [magenta]{excess_path}[/magenta] [red]failed to be deleted[/red] from printer: [bold]{printer.name}[/bold].', flush=True)  # noqa
+                print(
+                    f"File [magenta]{excess_path}[/magenta] [red]failed to be "
+                    f"deleted[/red] from printer: [bold]{printer.name}"
+                    f"[/bold].",
+                    flush=True,
+                )
         else:
-            print(f'File "[magenta]{excess_path}[/magenta] [yellow]does not exist[/yellow] on printer: [bold]{printer.name}[/bold]', flush=True)  # noqa
+            print(
+                f'File "[magenta]{excess_path}[/magenta] [yellow]does not '
+                f"exist[/yellow] on printer: [bold]{printer.name}[/bold]",
+                flush=True,
+            )
 
     # Upload Missing Files
     for missing in missing_files:
         if missing.is_stale:
-            if file_node := printer.storage.get_node_for_display_path(missing.remote_path):  # noqa
+            if file_node := printer.storage.get_node_for_display_path(
+                missing.remote_path
+            ):
                 printer.storage.delete_file(file_node)
-        if printer.storage.upload_file(local_path=missing.local_path,
-                                       remote_path=missing.remote_path):
-            print(f'File [magenta]{missing.local_path}[/magenta] [green]successfully [bold]{"refreshed" if missing.is_stale else "uploaded"}[/bold][/green] to printer: [bold]{printer.name}[/bold].', flush=True)  # noqa
+        if printer.storage.upload_file(
+            local_path=missing.local_path, remote_path=missing.remote_path
+        ):
+            verb = "refreshed" if missing.is_stale else "uploaded"
+            print(
+                f"File [magenta]{missing.local_path}[/magenta] [green]"
+                f"successfully [bold]{verb}[/bold][/green] to printer: "
+                f"[bold]{printer.name}[/bold].",
+                flush=True,
+            )
         else:
-            print(f'File [magenta]{missing.local_path}[/magenta] [red]failed to {"refresh" if missing.is_stale else "upload"}[/red] to printer: [bold]{printer.name}[/bold].', flush=True)  # noqa
+            verb = "refresh" if missing.is_stale else "upload"
+            print(
+                f"File [magenta]{missing.local_path}[/magenta] [red]failed to "
+                f"{verb}[/red] to printer: [bold]{printer.name}[/bold].",
+                flush=True,
+            )
 
     # Reload the internal FileNode graph.
     printer.storage.reload()
     return printer
 
 
-def process(*,
-            config_path: Union[Path, str],
-            included_printers: Optional[Iterable[str]],
-            excluded_printers: Optional[Iterable[str]],
-            source_path: Union[Path, str],
-            relative_to_path: Optional[Union[Path, str]],
-            destination_path: Optional[Union[Path, str]],
-            suffixes: Optional[Iterable[str]] = None,
-            ignore_state: bool = False,
-            execute: bool = False,
-            ) -> bool:
+def process(
+    *,
+    config_path: Union[Path, str],
+    included_printers: Optional[Iterable[str]],
+    excluded_printers: Optional[Iterable[str]],
+    source_path: Union[Path, str],
+    relative_to_path: Optional[Union[Path, str]],
+    destination_path: Optional[Union[Path, str]],
+    suffixes: Optional[Iterable[str]] = None,
+    ignore_state: bool = False,
+    execute: bool = False,
+) -> bool:
     """
     Given a configuration, start syncing files across all printers.
 
@@ -162,21 +216,25 @@ def process(*,
         source_path = Path(source_path)
     source_path = source_path.expanduser().resolve()
 
-    if relative_to_path and not isinstance(relative_to_path, Path):
-        relative_to_path = Path(relative_to_path)
     if relative_to_path:
-        relative_to_path = relative_to_path.expanduser().resolve()
+        if isinstance(relative_to_path, Path):
+            relative_to_path = relative_to_path.expanduser().resolve()
+        else:
+            relative_to_path = Path(relative_to_path).expanduser().resolve()
     else:
         relative_to_path = source_path
 
-    if not isinstance(destination_path, Path):
-        destination_path = Path(destination_path)
+    if destination_path:
+        if not isinstance(destination_path, Path):
+            destination_path = Path(destination_path)
+    else:
+        destination_path = Path("")
 
-    if not isinstance(config_path, Path):
+    if config_path and not isinstance(config_path, Path):
         config_path = Path(config_path)
 
     if suffixes is None:
-        suffixes = ['.gcode']
+        suffixes = [".gcode"]
 
     all_printers = set(Printer.from_config(config_path))
 
@@ -184,27 +242,30 @@ def process(*,
         # Flatten and nested iterables and lower-case the strings.
         included_printers = set(map(str.lower, set(chain(*included_printers))))
         printers = {
-            p for p in all_printers
-            if p.name.lower() in included_printers
+            p for p in all_printers if p.name.lower() in included_printers
         }
     elif excluded_printers:
         # Flatten and nested iterables and lower-case the strings.
         excluded_printers = set(map(str.lower, set(chain(*excluded_printers))))
         printers = {
-            p for p in all_printers
-            if p.name.lower() not in excluded_printers
+            p for p in all_printers if p.name.lower() not in excluded_printers
         }
     else:
         printers = all_printers
 
     source_path = source_path.expanduser().resolve()
-    local_files = set(gen_files_from_path(local_path=Path(source_path),
-                                          suffixes=suffixes))
+    local_files = set(
+        gen_files_from_path(local_path=Path(source_path), suffixes=suffixes)
+    )
 
     if execute:
-        print('The following actions will be taken.')
+        print("The following actions will be taken.")
     else:
-        print('Dry run only. These actions will [bold]not[/bold] be performed. (use the [bold]-g/--execute[/bold] option to perform these actions.)')  # noqa
+        print(
+            "Dry run only. These actions will [bold]not[/bold] be performed. "
+            "(use the [bold]-g/--execute[/bold] option to perform these "
+            "actions.)"
+        )
 
     try:
         with ThreadPoolExecutor(max_workers=cpu_count()) as pool:
@@ -217,7 +278,8 @@ def process(*,
                     ignore_state=ignore_state,
                     local_files=local_files,
                     relative_to_path=relative_to_path,
-                ) for printer in printers
+                )
+                for printer in printers
             }
     except Exception:
         return False
@@ -239,59 +301,101 @@ def process(*,
 def main():
     """Parse input and pass control to `process()`."""
     # Parse any command line options
-    parser = argparse.ArgumentParser('link_sync')
+    parser = argparse.ArgumentParser("link_sync")
     parser.add_argument(
-        '-c', '--config', action='store', dest='config_path',
-        required=False, default='printers.json',
-        help="Path to a YAML or JSON file containing the configuration of all "
-             "printers. Default is `printers.yml` in the current "
-             "working directory."
+        "-c",
+        "--config",
+        action="store",
+        dest="config_path",
+        required=False,
+        default="printers.json",
+        help=(
+            "Path to a YAML or JSON file containing the configuration of all "
+            "printers. Default is `printers.yml` in the current "
+            "working directory."
+        ),
     )
     parser.add_argument(
-        '-p', '--printer', action='append', nargs='*',
-        dest='included_printers', required=False,
-        help="Explicitly name printers to INCLUDE for processing. By "
-             "default, all idle (see the `--ignore-state` option) printers "
-             "found in the will configuration be processed."
+        "-p",
+        "--printer",
+        action="append",
+        nargs="*",
+        dest="included_printers",
+        required=False,
+        help=(
+            "Explicitly name printers to INCLUDE for processing. By default, "
+            "all idle (see the `--ignore-state` option) printers found in the "
+            "will configuration be processed."
+        ),
     )
     parser.add_argument(
-        '-x', '--exclude', action='append', nargs='*',
-        dest='excluded_printers', required=False,
-        help="Explicitly name printers to EXCLUDE from processing. By "
-             "default, all idle (see the `--ignore-state option) printers "
-             "found in the configuration will be processed. This option will "
-             "be ignored if the `--printer` option is used."
+        "-x",
+        "--exclude",
+        action="append",
+        nargs="*",
+        dest="excluded_printers",
+        required=False,
+        help=(
+            "Explicitly name printers to EXCLUDE from processing. By "
+            "default, all idle (see the `--ignore-state option) printers "
+            "found in the configuration will be processed. This option will "
+            "be ignored if the `--printer` option is used."
+        ),
     )
     parser.add_argument(
-        '-s', '--source', action='store', dest='source_path',
+        "-s",
+        "--source",
+        action="store",
+        dest="source_path",
         required=True,
-        help='The local path to the root of the files that should be synced.'
+        help="The local path to the root of the files that should be synced.",
     )
     parser.add_argument(
-        '-d', '--destination', action='store', dest='destination_path',
-        required=False, default=None,
-        help="The relative path within the printers' storage where the source "
-             "files should be synchronized. Default is the root of the "
-             "printers' storage."
+        "-d",
+        "--destination",
+        action="store",
+        dest="destination_path",
+        required=False,
+        default=None,
+        help=(
+            "The relative path within the printers' storage where the source "
+            "files should be synchronized. Default is the root of the "
+            "printers' storage."
+        ),
     )
     parser.add_argument(
-        '-r', '--relative-to', action='store', dest='relative_to_path',
-        required=False, default=None,
-        help="If provided, the SOURCE_PATH file paths will consider only the "
-             "portion of the path that is relative to this given path. If not "
-             "provided, it is set to the SOURCE_PATH itself."
+        "-r",
+        "--relative-to",
+        action="store",
+        dest="relative_to_path",
+        required=False,
+        default=None,
+        help=(
+            "If provided, the SOURCE_PATH file paths will consider only the "
+            "portion of the path that is relative to this given path. If not "
+            "provided, it is set to the SOURCE_PATH itself."
+        ),
     )
     parser.add_argument(
-        '-g', '--go', action='store_true', default=False, dest='execute',
+        "-g",
+        "--go",
+        action="store_true",
+        default=False,
+        dest="execute",
         help="Make the changes (do not do a dry-run).",
     )
     parser.add_argument(
-        '--ignore-state', action='store_true', dest='ignore_state',
-        required=False, default=False,
-        help="If set, all printers, including busy printers, will be "
-             "processed. Use with caution as some printers may experience "
-             "print failures when printing and API calls are received "
-             "and processed."
+        "--ignore-state",
+        action="store_true",
+        dest="ignore_state",
+        required=False,
+        default=False,
+        help=(
+            "If set, all printers, including busy printers, will be "
+            "processed. Use with caution as some printers may experience "
+            "print failures when printing and API calls are received "
+            "and processed."
+        ),
     )
     options = parser.parse_args()
     process(**vars(options))

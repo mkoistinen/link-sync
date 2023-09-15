@@ -37,14 +37,17 @@ class FileNode:
         Any other keyword arguments passed.
     """
 
-    def __init__(self, *,
-                 name: str,
-                 type: str,
-                 ro: bool,
-                 m_timestamp: Optional[int] = None,
-                 display_name: Optional[str] = None,
-                 parent_node: Optional['FileNode'] = None,
-                 **kwargs):
+    def __init__(
+        self,
+        *,
+        name: str,
+        type: str,
+        ro: bool,
+        m_timestamp: Optional[int] = None,
+        display_name: Optional[str] = None,
+        parent_node: Optional["FileNode"] = None,
+        **kwargs,
+    ):
         self.name = name  # 8.3 "short" name
         self.ro = ro
         self.type = type
@@ -82,8 +85,10 @@ class FileNode:
     def full_display_path(self):
         """Return the full display path of the node."""
         if self.parent_node:
-            return (f"{self.parent_node.full_display_path}/"
-                    f"{self.display_name or self.name}")
+            return (
+                f"{self.parent_node.full_display_path}/"
+                f"{self.display_name or self.name}"
+            )
         else:
             # Root nodes may not have display_names.
             return f"/{self.display_name or self.name}"
@@ -120,10 +125,9 @@ class Storage:
     def __init__(self, name: str, host: str, username: str, password: str):
         self.name = name
         self.api_key = password
-        self.api = PrusaLinkApi(name=self.name,
-                                host=host,
-                                username=username,
-                                password=password)
+        self.api = PrusaLinkApi(
+            name=self.name, host=host, username=username, password=password
+        )
         self.root_node = self._get_root_node()
         self._build_storage(self.root_node)
 
@@ -155,12 +159,12 @@ class Storage:
         # The printer's status also returns the storage root.
         status_response = self.api.status_response()
         if isinstance(status_response.payload, dict):
-            storage_path = status_response.payload['storage']['path']
+            storage_path = status_response.payload["storage"]["path"]
             files_response = self.api.files_response(path=storage_path)
             if isinstance(files_response.payload, dict):
                 return FileNode(**files_response.payload, parent_node=None)
 
-        raise StorageException(f'Could not get the root path for {self}')
+        raise StorageException(f"Could not get the root path for {self}")
 
     def reload(self):
         """Rebuilds the storage node network."""
@@ -184,14 +188,15 @@ class Storage:
 
         # If it has children, recurse...
         if response.success and isinstance(response.payload, dict):
-            for child_map in response.payload.get('children', []):
+            for child_map in response.payload.get("children", []):
                 child_obj = FileNode(**child_map, parent_node=file_obj)
                 file_obj.child_nodes.add(child_obj)
                 if child_obj.type == "FOLDER":
                     self._build_storage(file_obj=child_obj)
 
-    def gen_nodes(self, file_node: Optional[FileNode] = None
-                  ) -> Generator[FileNode, None, None]:
+    def gen_nodes(
+        self, file_node: Optional[FileNode] = None
+    ) -> Generator[FileNode, None, None]:
         """
         Yield all FileNode instances.
 
@@ -216,8 +221,9 @@ class Storage:
         for child_node in file_node.child_nodes:
             yield from self.gen_nodes(child_node)
 
-    def get_node_for_display_path(self, path: Union[Path, str]
-                                  ) -> Union[FileNode, None]:
+    def get_node_for_display_path(
+        self, path: Union[Path, str]
+    ) -> Union[FileNode, None]:
         """
         Given a `path`, return the FileNode representing it, if any.
 
@@ -240,8 +246,9 @@ class Storage:
                 return file_node
         return None
 
-    def get_node_for_short_path(self, path: Union[Path, str]
-                                ) -> Union[FileNode, None]:
+    def get_node_for_short_path(
+        self, path: Union[Path, str]
+    ) -> Union[FileNode, None]:
         """
         Given a `path`, return the FileNode representing it, if any.
 
@@ -285,7 +292,8 @@ class Storage:
             for node in self.gen_nodes():
                 if node.full_display_path == str(parent):
                     return Path(node.full_short_path).joinpath(
-                        remote_path.relative_to(parent))
+                        remote_path.relative_to(parent)
+                    )
 
         # Looks like this is a completely new path...
         return remote_path
@@ -309,21 +317,23 @@ class Storage:
             return True
 
         path = self.get_shorter_path(remote_path)
-        headers = {'Create-Folder': 'true'}
+        headers = {"Create-Folder": "true"}
         try:
             self.api.files_response(method="PUT", path=path, headers=headers)
         except ApiException as e:
             logger.error(str(e))
             return False
         except Exception:
-            logger.error(f'Unable to create a new folder "{remote_path}" '
-                         f'on printer.')
+            logger.error(
+                f'Unable to create a new folder "{remote_path}" on printer.'
+            )
             return False
         else:
             return True
 
-    def upload_file(self, local_path: Union[Path, str],
-                    remote_path: Union[Path, str]) -> bool:
+    def upload_file(
+        self, local_path: Union[Path, str], remote_path: Union[Path, str]
+    ) -> bool:
         """
         Upload a new file into storage from `local_path`.
 
@@ -355,26 +365,27 @@ class Storage:
             except ApiException as e:
                 logger.error(str(e))
             except Exception:
-                logger.error('Folder already exists?')
+                logger.error("Folder already exists?")
 
         headers = {
-            'Overwrite': 'true',
-            'Content-type': 'text/x.gcode',
-            'Print-After-Upload': 'false',
-            'X-Api-Key': self.api_key,
+            "Overwrite": "true",
+            "Content-type": "text/x.gcode",
+            "Print-After-Upload": "false",
+            "X-Api-Key": self.api_key,
         }
         try:
-            with open(local_path, mode='rb') as source_fp:
-                self.api.files_response("PUT",
-                                        path=shorter_path,
-                                        data=source_fp,
-                                        headers=headers)
+            with open(local_path, mode="rb") as source_fp:
+                self.api.files_response(
+                    "PUT", path=shorter_path, data=source_fp, headers=headers
+                )
         except ApiException as e:
             logger.error(str(e))
             return False
         except Exception:
-            logger.error(f'Unable to upload file "{local_path}" to '
-                         f'"{remote_path}" on printer.')
+            logger.error(
+                f'Unable to upload file "{local_path}" to '
+                f'"{remote_path}" on printer.'
+            )
             return False
         else:
             return True
@@ -393,14 +404,15 @@ class Storage:
         bool
             True if the deletion was successful.
         """
-        headers = {'X-Api-Key': self.api_key}
+        headers = {"X-Api-Key": self.api_key}
         try:
-            self.api.files_response("DELETE",
-                                    path=node.full_short_path,
-                                    headers=headers)
+            self.api.files_response(
+                "DELETE", path=node.full_short_path, headers=headers
+            )
         except Exception:
-            logger.exception(f'Could not delete file '
-                             f'"{node.full_display_path}".')
+            logger.exception(
+                f"Could not delete file " f'"{node.full_display_path}".'
+            )
             return False
         else:
             return True

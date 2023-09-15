@@ -4,9 +4,9 @@ from pathlib import Path
 from typing import Generator, Iterable, Optional
 
 
-def gen_files_from_path(local_path: Path,
-                        suffixes: Optional[Iterable[str]] = None
-                        ) -> Generator[Path, None, None]:
+def gen_files_from_path(
+    local_path: Path, suffixes: Optional[Iterable[str]] = None
+) -> Generator[Path, None, None]:
     """
     Yield filenames from given `local_path`, recursing through sub-directories.
 
@@ -26,17 +26,14 @@ def gen_files_from_path(local_path: Path,
     Path
         A file found within the given `local_path`.
     """
-    for path_obj in local_path.glob('*'):
+    for path_obj in local_path.glob("*"):
         if (
             path_obj.is_file()
-            and not path_obj.name.startswith('.')
+            and not path_obj.name.startswith(".")
             and (not suffixes or path_obj.suffix in suffixes)
         ):
             yield path_obj
-        elif (
-            path_obj.is_dir()
-            and not path_obj.name.startswith('.')
-        ):
+        elif path_obj.is_dir() and not path_obj.name.startswith("."):
             yield from gen_files_from_path(path_obj, suffixes=suffixes)
 
 

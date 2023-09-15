@@ -3,7 +3,7 @@ from http import HTTPStatus
 from io import BufferedReader
 import logging
 from pathlib import Path
-from typing import Dict, Optional, Union
+from typing import Any, Dict, Optional, Union
 from urllib.parse import quote
 
 import requests
@@ -32,7 +32,7 @@ class ApiResponse:
         a dictionary or list).
     """
 
-    __slots__ = 'status_code', 'payload'
+    __slots__ = "status_code", "payload"
 
     def __init__(self, status_code: int, payload: Optional[object] = None):
         self.status_code = status_code
@@ -47,12 +47,15 @@ class ApiResponse:
 class AbstractApi(metaclass=ABCMeta):
     """Abstractly describes the API."""
 
-    def __init__(self, *,
-                 name: Optional[str] = None,
-                 host: str,
-                 username: str,
-                 password: str):
-        self.name = name or f'@ {host}'
+    def __init__(
+        self,
+        *,
+        name: Optional[str] = None,
+        host: str,
+        username: str,
+        password: str,
+    ):
+        self.name = name or f"@ {host}"
         self.host = host
         self.username = username
         self.password = password
@@ -64,13 +67,14 @@ class AbstractApi(metaclass=ABCMeta):
         """Return the deserialized status payload as a dictionary."""
 
     @abstractmethod
-    def files_response(self,
-                       method: str = "GET",
-                       *,
-                       data: Optional[BufferedReader] = None,
-                       headers: Optional[Dict[str, str]],
-                       path: Union[Path, str],
-                       ) -> ApiResponse:
+    def files_response(
+        self,
+        method: str = "GET",
+        *,
+        data: Optional[Any] = None,
+        headers: Optional[Dict[str, str]],
+        path: Union[Path, str],
+    ) -> ApiResponse:
         """Return the deserialized files payload as a dictionary."""
 
 
@@ -89,7 +93,7 @@ class PrusaLinkApi(AbstractApi):
 
     def status_response(self, method: str = "GET") -> ApiResponse:
         """Return the deserialized status API and payload."""
-        url = f'{self._api_base}/status'
+        url = f"{self._api_base}/status"
         res = self.session.request(method=method, url=url, auth=self.auth)
         if HTTPStatus.OK <= res.status_code < HTTPStatus.MULTIPLE_CHOICES:
             try:
@@ -101,28 +105,29 @@ class PrusaLinkApi(AbstractApi):
 
         return ApiResponse(res.status_code, payload)
 
-    def files_response(self,
-                       method: str = "GET",
-                       *,
-                       data: Optional[BufferedReader] = None,
-                       headers: Optional[Dict[str, str]] = None,
-                       path: Union[Path, str],
-                       ) -> ApiResponse:
+    def files_response(
+        self,
+        method: str = "GET",
+        *,
+        data: Optional[Any] = None,
+        headers: Optional[Dict[str, str]] = None,
+        path: Union[Path, str],
+    ) -> ApiResponse:
         """Return the deserialized files API status and payload."""
         if not headers:
             headers = {}
-        url = f'{self._api_base}/files{quote(str(path))}'
+        url = f"{self._api_base}/files{quote(str(path))}"
         options = {}
 
         if headers:
-            options['headers'] = headers
+            options["headers"] = headers
         # PrusaLink doesn't like both types of Authentication in a request.
-        if not headers or 'X-Api-Key' not in headers:
-            options['auth'] = self.auth
+        if not headers or "X-Api-Key" not in headers:
+            options["auth"] = self.auth
 
         # Only add `data` if it was provided
-        if data:
-            options['data'] = data
+        if data is not None:
+            options["data"] = data
         res = self.session.request(method=method, url=url, **options)
         if HTTPStatus.OK <= res.status_code < HTTPStatus.MULTIPLE_CHOICES:
             try:
