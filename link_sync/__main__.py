@@ -197,7 +197,7 @@ def process(
     suffixes : iterable of str or None, default None
         Optional. An iterable of string file extensions. This will limit sync
         operations to only files that end with any of the given extensions. If
-        none provided, will be set to contain only ".gcode".
+        none provided, will be set to contain only ".gcode" and ".bbf".
     ignore_status : bool, default False
         If True, all printers, including those in any of the busy states will
         be processed. Use with caution as some printers or pre-release firmware
@@ -234,7 +234,7 @@ def process(
         config_path = Path(config_path)
 
     if suffixes is None:
-        suffixes = [".gcode"]
+        suffixes = [".gcode", ".bbf"]
 
     all_printers = set(Printer.from_config(config_path))
 

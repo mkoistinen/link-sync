@@ -349,6 +349,8 @@ class Storage:
         bool
             True if the upload is successful.
         """
+        if not isinstance(local_path, Path):
+            local_path = Path(local_path)
         if not isinstance(remote_path, Path):
             remote_path = Path(remote_path)
 
@@ -369,10 +371,13 @@ class Storage:
 
         headers = {
             "Overwrite": "true",
-            "Content-type": "text/x.gcode",
             "Print-After-Upload": "false",
             "X-Api-Key": self.api_key,
         }
+        if local_path.suffix == ".gcode":
+            headers.update({"Content-type": "text/x.gcode"})
+        elif local_path.suffix == ".bbf":
+            headers.update({"Content-type": "application/octet-stream"})
         try:
             with open(local_path, mode="rb") as source_fp:
                 self.api.files_response(
