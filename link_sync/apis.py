@@ -1,6 +1,5 @@
 from abc import ABCMeta, abstractmethod
 from http import HTTPStatus
-from io import BufferedReader
 import logging
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
