@@ -12,7 +12,7 @@ from .printers import IDLE_STATES, Printer
 from .utilities import gen_files_from_path, human_readable_transfer_speed
 
 
-__VERSION__ = "0.2.2"
+__VERSION__ = "0.2.3"
 
 
 logger = logging.getLogger(__name__)
