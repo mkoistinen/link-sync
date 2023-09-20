@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import auto, Enum
 import json
 import logging
@@ -209,7 +209,9 @@ class Printer:
                 # Looks like the file already exists, check if it is stale.
                 # Stale requires that the remote_file be more than 60 seconds
                 # older than the local file.
-                local_mt = datetime.fromtimestamp(local_file.stat().st_mtime)
+                local_mt = datetime.fromtimestamp(
+                    local_file.stat().st_mtime, tz=timezone.utc
+                )
                 if node_mt := node.m_datetime:
                     if local_mt > node_mt + timedelta(seconds=60):
                         yield MissingOrStaleFile(

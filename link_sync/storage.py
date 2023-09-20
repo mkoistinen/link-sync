@@ -1,10 +1,11 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from functools import cached_property
 import logging
 from pathlib import Path
 from typing import Generator, Optional, Set, Union
 
 from .apis import ApiException, PrusaLinkApi
+from .utilities import Timer
 
 
 logger = logging.getLogger(__name__)
@@ -97,9 +98,25 @@ class FileNode:
     def m_datetime(self) -> Union[datetime, None]:
         """Return the modificiation date of the file as a datetime."""
         if self.m_timestamp:
-            return datetime.utcfromtimestamp(self.m_timestamp)
+            return datetime.utcfromtimestamp(self.m_timestamp).astimezone(
+                tz=timezone.utc
+            )
         else:
             return None
+
+
+class OperationResponse:
+    """Thin, slotted class to hold operation results."""
+
+    __slots__ = "success", "duration"
+
+    def __init__(
+        self,
+        success: Union[bool, None] = None,
+        duration: Union[timedelta, None] = None,
+    ):
+        self.success = success
+        self.duration = duration
 
 
 class Storage:
@@ -333,7 +350,7 @@ class Storage:
 
     def upload_file(
         self, local_path: Union[Path, str], remote_path: Union[Path, str]
-    ) -> bool:
+    ) -> OperationResponse:
         """
         Upload a new file into storage from `local_path`.
 
@@ -346,8 +363,9 @@ class Storage:
 
         Returns
         -------
-        bool
-            True if the upload is successful.
+        OperationResponse
+            `success` is True if the upload is successful.
+            `duration` contains a timedelta of the duration of the operation.
         """
         if not isinstance(local_path, Path):
             local_path = Path(local_path)
@@ -378,24 +396,29 @@ class Storage:
             headers.update({"Content-type": "text/x.gcode"})
         elif local_path.suffix == ".bbf":
             headers.update({"Content-type": "application/octet-stream"})
-        try:
-            with open(local_path, mode="rb") as source_fp:
-                self.api.files_response(
-                    "PUT", path=shorter_path, data=source_fp, headers=headers
-                )
-        except ApiException as e:
-            logger.error(str(e))
-            return False
-        except Exception:
-            logger.error(
-                f'Unable to upload file "{local_path}" to '
-                f'"{remote_path}" on printer.'
-            )
-            return False
-        else:
-            return True
 
-    def delete_file(self, node: FileNode) -> bool:
+        with Timer() as timer:
+            try:
+                with open(local_path, mode="rb") as source_fp:
+                    self.api.files_response(
+                        "PUT",
+                        path=shorter_path,
+                        data=source_fp,
+                        headers=headers,
+                    )
+            except ApiException as e:
+                logger.error(str(e))
+                return OperationResponse(False, timer.duration)
+            except Exception:
+                logger.error(
+                    f'Unable to upload file "{local_path}" to '
+                    f'"{remote_path}" on printer.'
+                )
+                return OperationResponse(False, timer.duration)
+            else:
+                return OperationResponse(True, timer.duration)
+
+    def delete_file(self, node: FileNode) -> OperationResponse:
         """
         Delete the file represented by the given `node` from the printer.
 
@@ -406,18 +429,20 @@ class Storage:
 
         Returns
         -------
-        bool
-            True if the deletion was successful.
+        OperationResponse
+            `success` is True if the upload is successful.
+            `duration` contains a timedelta of the duration of the operation.
         """
-        headers = {"X-Api-Key": self.api_key}
-        try:
-            self.api.files_response(
-                "DELETE", path=node.full_short_path, headers=headers
-            )
-        except Exception:
-            logger.exception(
-                f"Could not delete file " f'"{node.full_display_path}".'
-            )
-            return False
-        else:
-            return True
+        with Timer() as timer:
+            headers = {"X-Api-Key": self.api_key}
+            try:
+                self.api.files_response(
+                    "DELETE", path=node.full_short_path, headers=headers
+                )
+            except Exception:
+                logger.exception(
+                    f"Could not delete file " f'"{node.full_display_path}".'
+                )
+                return OperationResponse(False, timer.duration)
+            else:
+                return OperationResponse(True, timer.duration)

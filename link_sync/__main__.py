@@ -9,7 +9,7 @@ from typing import Iterable, Optional, Set, Union
 from rich import print
 
 from .printers import IDLE_STATES, Printer
-from .utilities import gen_files_from_path
+from .utilities import gen_files_from_path, human_readable_transfer_speed
 
 
 __VERSION__ = "0.2.2"
@@ -111,7 +111,7 @@ def _sync(
     # Prune Excess Files
     for excess_path in excess_files:
         if node := printer.storage.get_node_for_display_path(excess_path):
-            if printer.storage.delete_file(node):
+            if printer.storage.delete_file(node).success:
                 print(
                     f"File [magenta]{excess_path}[/magenta] [green]"
                     f"successfully [bold]deleted[/bold][/green] from printer: "
@@ -139,14 +139,22 @@ def _sync(
                 missing.remote_path
             ):
                 printer.storage.delete_file(file_node)
-        if printer.storage.upload_file(
+        response = printer.storage.upload_file(
             local_path=missing.local_path, remote_path=missing.remote_path
-        ):
+        )
+        if response.success:
+            if response.duration:
+                speed = human_readable_transfer_speed(
+                    missing.local_path.stat().st_size, response.duration
+                )
+            else:
+                speed = "n/a"
             verb = "refreshed" if missing.is_stale else "uploaded"
             print(
                 f"File [magenta]{missing.local_path}[/magenta] [green]"
                 f"successfully [bold]{verb}[/bold][/green] to printer: "
-                f"[bold]{printer.name}[/bold].",
+                f"[bold]{printer.name}[/bold] in {response.duration} "
+                f"({speed}).",
                 flush=True,
             )
         else:
