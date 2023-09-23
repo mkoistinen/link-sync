@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Iterator
@@ -7,6 +7,7 @@ from link_sync.utilities import (
     gen_files_from_path,
     get_file_mtime,
     human_readable_transfer_speed,
+    strfdelta,
 )
 import pytest
 
@@ -59,6 +60,8 @@ def test_get_file_mtime():
 @pytest.mark.parametrize(
     "bytes, duration, expected_result",
     [
+        (0, 1.0, "n/a B/sec."),
+        (100, 0.0, "∞ B/sec."),
         (100, 1.0, "100.0 B/sec."),
         (100, 2.0, "50.0 B/sec."),
         (2000, 1.0, "2.0 KB/sec."),
@@ -75,3 +78,18 @@ def test_human_readable_transfer_speed(bytes, duration, expected_result):
     """Test that human_readable_transfer_speed works as expected."""
     result = human_readable_transfer_speed(bytes, duration)
     assert result == expected_result
+
+
+@pytest.mark.parametrize(
+    "seconds, output",
+    (
+        (0.0, "0h 0m 0.0s"),
+        (1.1, "0h 0m 1.1s"),
+        (100.24, "0h 1m 40.2s"),
+        (1000.26, "0h 16m 40.3s"),
+    ),
+)
+def test_strfdelta(seconds, output):
+    """Test that strfdelta works as expected."""
+    delta = timedelta(seconds=seconds)
+    assert strfdelta(delta) == output

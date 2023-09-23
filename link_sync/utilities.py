@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from functools import lru_cache
 import math
 from pathlib import Path
+from string import Formatter
 from typing import Generator, Iterable, Optional, Union
 
 
@@ -84,7 +85,52 @@ class Timer:
         return None
 
 
-def human_readable_transfer_speed(bytes: int, duration: int) -> str:
+def strfdelta(delta: timedelta, fmt: str = "{H:01}h {M:01}m {S:01.1f}s"):
+    """
+    Format a timedelta instance to string.
+
+    Adapted from: https://stackoverflow.com/a/63198084 by `tomatoeshift`
+
+    Parameters
+    ----------
+    delta : timedelta
+        A timedelta instance.
+    fmt : str, default: "{H:02}h {M:02}m {S:01.0f}s"
+        A format string.
+    """
+    # Convert timedelta to float seconds.
+    remainder = delta.total_seconds()
+
+    f = Formatter()
+    desired_fields = [field_tuple[1] for field_tuple in f.parse(fmt)]
+    possible_fields = ("Y", "m", "W", "D", "H", "M", "S", "mS", "µS")
+    constants = {
+        "Y": 86400 * 365.24,
+        "m": 86400 * 30.44,
+        "W": 604800,
+        "D": 86400,
+        "H": 3600,
+        "M": 60,
+        "S": 1,
+        "mS": 1 / pow(10, 3),
+        "µS": 1 / pow(10, 6),
+    }
+    values = {}
+    for field in possible_fields:
+        if field in desired_fields and field in constants:
+            Quotient, remainder = divmod(remainder, constants[field])
+            if (
+                field == "S"
+                and "mS" not in desired_fields
+                and "µS" not in desired_fields
+            ):
+                values[field] = Quotient + remainder
+            else:
+                values[field] = int(Quotient)
+    return f.format(fmt, **values)
+
+
+def human_readable_transfer_speed(bytes: int, duration: float) -> str:
     """Return the transfer speed in human readable binary units."""
     UNITS = "KMGTP"
 
@@ -99,4 +145,7 @@ def human_readable_transfer_speed(bytes: int, duration: int) -> str:
                 f"{raw_speed / math.pow(1024, magnitude):,.1f} "
                 f"{UNITS[magnitude - 1]}B/sec."
             )
-    return "n/a B/sec."
+    elif duration:
+        return "n/a B/sec."
+    else:
+        return "∞ B/sec."

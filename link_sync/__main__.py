@@ -1,16 +1,22 @@
 import argparse
 from concurrent.futures import as_completed, ThreadPoolExecutor
+from datetime import timedelta
 from itertools import chain
 import logging
 from multiprocessing import cpu_count
 from pathlib import Path
 from typing import Iterable, Optional, Set, Union
 
-from rich import print
+from rich.console import Console
 
 from .printers import IDLE_STATES, Printer
-from .utilities import gen_files_from_path, human_readable_transfer_speed
+from .utilities import (
+    gen_files_from_path,
+    human_readable_transfer_speed,
+    strfdelta,
+)
 
+console = Console(highlight=False)
 
 __VERSION__ = "0.2.4"
 
@@ -57,7 +63,7 @@ def _sync(
     # Do not disturb busy printers with heavy file operations.
     printer_state = printer.get_state()
     if printer_state not in IDLE_STATES and not ignore_state:
-        print(
+        console.print(
             f"[yellow][bold]{printer.name}[/bold] is currently in state "
             f"{printer_state} and will not be accessed.[/yellow]"
         )
@@ -84,26 +90,23 @@ def _sync(
     verb = "is" if num_excess == 1 else "are"
     plural_excess = "s" if num_excess != 1 else ""
     plural_stale = "s" if num_stale != 1 else ""
-    print(
+    console.print(
         f"[bold]{printer.name}[/bold] - There {verb} [bold]{num_excess} file"
         f"{plural_excess} to delete[/bold], [bold]{num_upload} missing to "
         f"upload[/bold] and [bold]{num_stale} stale file{plural_stale} to "
-        f"refresh[/bold].",
-        flush=True,
+        f"refresh[/bold]."
     )
     for missing in missing_files:
-        print(
+        console.print(
             f"To be [bold]{'refreshed' if missing.is_stale else 'uploaded'}"
             f"[/bold] to [bold]{printer.name}[/bold]: [magenta]"
             f"{missing.local_path}[/magenta] => [magenta]"
             f"{missing.remote_path}[/magenta].",
-            flush=True,
         )
     for excess in excess_files:
-        print(
+        console.print(
             f"To be [bold]deleted[/bold] from [bold]{printer.name}[/bold]: "
             f"[magenta]{excess}[/magenta].",
-            flush=True,
         )
     if not execute:
         return printer
@@ -112,24 +115,21 @@ def _sync(
     for excess_path in excess_files:
         if node := printer.storage.get_node_for_display_path(excess_path):
             if printer.storage.delete_file(node).success:
-                print(
+                console.print(
                     f"File [magenta]{excess_path}[/magenta] [green]"
                     f"successfully [bold]deleted[/bold][/green] from printer: "
                     f"[bold]{printer.name}[/bold].",
-                    flush=True,
                 )
             else:
-                print(
+                console.print(
                     f"File [magenta]{excess_path}[/magenta] [red]failed to be "
                     f"deleted[/red] from printer: [bold]{printer.name}"
                     f"[/bold].",
-                    flush=True,
                 )
         else:
-            print(
+            console.print(
                 f'File "[magenta]{excess_path}[/magenta] [yellow]does not '
                 f"exist[/yellow] on printer: [bold]{printer.name}[/bold]",
-                flush=True,
             )
 
     # Upload Missing Files
@@ -144,25 +144,26 @@ def _sync(
         )
         if response.success:
             if response.duration:
+                duration = strfdelta(response.duration)
                 speed = human_readable_transfer_speed(
-                    missing.local_path.stat().st_size, response.duration
+                    missing.local_path.stat().st_size,
+                    response.duration.total_seconds(),
                 )
             else:
-                speed = "n/a"
+                duration = strfdelta(timedelta(0))
+                speed = "∞ B/sec."
             verb = "refreshed" if missing.is_stale else "uploaded"
-            print(
+            console.print(
                 f"File [magenta]{missing.local_path}[/magenta] [green]"
                 f"successfully [bold]{verb}[/bold][/green] to printer: "
-                f"[bold]{printer.name}[/bold] in {response.duration} "
-                f"({speed}).",
-                flush=True,
+                f"[bold]{printer.name}[/bold] in [cyan]{duration}[/cyan] "
+                f"([cyan]{speed}[/cyan])."
             )
         else:
             verb = "refresh" if missing.is_stale else "upload"
-            print(
+            console.print(
                 f"File [magenta]{missing.local_path}[/magenta] [red]failed to "
                 f"{verb}[/red] to printer: [bold]{printer.name}[/bold].",
-                flush=True,
             )
 
     # Reload the internal FileNode graph.
@@ -267,9 +268,9 @@ def process(
     )
 
     if execute:
-        print("The following actions will be taken.")
+        console.print("The following actions will be taken.")
     else:
-        print(
+        console.print(
             "Dry run only. These actions will [bold]not[/bold] be performed. "
             "(use the [bold]-g/--execute[/bold] option to perform these "
             "actions.)"
@@ -300,7 +301,7 @@ def process(
                 logger.exception("A thread raised an exception.")
                 successes.add(False)
             else:
-                print(f"[bold]{printer.name}[/bold] complete.")
+                console.print(f"[bold]{printer.name}[/bold] complete.")
                 successes.add(True)
 
     return all(successes)
