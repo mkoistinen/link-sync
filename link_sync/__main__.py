@@ -12,7 +12,7 @@ from .printers import IDLE_STATES, Printer
 from .utilities import gen_files_from_path, human_readable_transfer_speed
 
 
-__VERSION__ = "0.2.3"
+__VERSION__ = "0.2.4"
 
 
 logger = logging.getLogger(__name__)
@@ -172,7 +172,7 @@ def _sync(
 
 def process(
     *,
-    config_path: Union[Path, str] = Path("printers.yml"),
+    config_path: Union[Path, str],
     included_printers: Optional[Iterable[str]],
     excluded_printers: Optional[Iterable[str]],
     source_path: Union[Path, str],
@@ -188,8 +188,7 @@ def process(
     Parameters
     ----------
     config_path : Path or str
-        The path to the JSON or YAML printer configuration file. Default
-        value: `Path("printers.yml")`.
+        The path to the JSON or YAML printer configuration file.
     included_printers : Iterable of str or None, default None
         Optional. If set, provide a list of printers by name to process,
         excluded any printers in the configuration not provided here.
@@ -317,7 +316,7 @@ def main():
         action="store",
         dest="config_path",
         required=False,
-        default="printers.json",
+        default="printers.yml",
         help=(
             "Path to a YAML or JSON file containing the configuration of all "
             "printers. Default is `printers.yml` in the current "
