@@ -172,7 +172,7 @@ def _sync(
 
 def process(
     *,
-    config_path: Union[Path, str],
+    config_path: Union[Path, str] = Path("printers.yml"),
     included_printers: Optional[Iterable[str]],
     excluded_printers: Optional[Iterable[str]],
     source_path: Union[Path, str],
@@ -188,7 +188,8 @@ def process(
     Parameters
     ----------
     config_path : Path or str
-        The path to the JSON or YAML printer configuration file.
+        The path to the JSON or YAML printer configuration file. Default
+        value: `Path("printers.yml")`.
     included_printers : Iterable of str or None, default None
         Optional. If set, provide a list of printers by name to process,
         excluded any printers in the configuration not provided here.
