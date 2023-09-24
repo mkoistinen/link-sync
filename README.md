@@ -131,7 +131,7 @@ The program will show a preview of what *would* happen if the `--go` option was 
 
 If the operations look correct, rerun the program with the `--go` argument:
 
-    ❯ link-sync --config ~/printers.yml --source ~/master_farm_files/usb --destination /usb/ --execute
+    ❯ link-sync --config ~/printers.yml --source ~/master_farm_files/usb --destination /usb/ --go
 
 And the files will be copied across all printers at the same time.
 
