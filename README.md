@@ -127,9 +127,9 @@ can be used like so:
 
     ❯ link-sync --config ~/printers.yml --source ~/master_farm_files/usb --destination /usb/
 
-The program will show a preview of what *would* happen if the `--execute` option was provided.
+The program will show a preview of what *would* happen if the `--go` option was provided.
 
-If the operations look correct, rerun the program with the `--execute` argument:
+If the operations look correct, rerun the program with the `--go` argument:
 
     ❯ link-sync --config ~/printers.yml --source ~/master_farm_files/usb --destination /usb/ --execute
 
@@ -139,7 +139,7 @@ Many of the arguments can be abbreviated. For example the above line could be:
 
     ❯ link-sync -c ~/printers.yml -s ~/master_farm_files/usb -d /usb/ -g
 
-Note the short version of `--execute` is `-g` for "go".
+Note the short version of `--go` is `-g`.
 
 You can use the built-in help function to see other options:
 
