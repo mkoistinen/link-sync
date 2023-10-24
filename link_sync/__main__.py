@@ -18,7 +18,7 @@ from .utilities import (
 
 console = Console(highlight=False)
 
-__VERSION__ = "0.2.4"
+__VERSION__ = "0.2.5"
 
 
 logger = logging.getLogger(__name__)
