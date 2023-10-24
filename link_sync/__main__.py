@@ -243,7 +243,7 @@ def process(
         config_path = Path(config_path)
 
     if suffixes is None:
-        suffixes = [".gcode", ".bbf"]
+        suffixes = [".gcode", ".bgcode", ".bbf"]
 
     all_printers = set(Printer.from_config(config_path))
 

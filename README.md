@@ -44,7 +44,7 @@ next day.
 
 Printers currently supported:
 
-- [x] Prusa MK4 running firmware 5.0.0 RC1
+- [x] Prusa MK4 running firmware 5.0.0 RC1 and later.
 
 TODO:
 
