@@ -197,7 +197,7 @@ def process(
         Optional. If set and `printers` is not in use, process all of the
         printers in the configuration except those provided here.
     source_path : Path or str
-        The location of local file heirarchy to sync to all configured
+        The location of local file hierarchy to sync to all configured
         printers. For example, `/home/fred/source_gcode/usb/`
     relative_to_path : Path or str
         If provided, prunes the local_file paths to this parent path.

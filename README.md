@@ -6,7 +6,7 @@ The goal of this project is to sync gcode files from a local "master" directory
 to any number of Prusa printers on the local network running PrusaLink when
 they are idle, simultaneously.
 
-Transfering files is tediously slow, so the idea is to sync several printers
+Transferring files is tediously slow, so the idea is to sync several printers
 all at once. This is a powerful workflow for farm operators who may have a
 new model that replaces an older one and negates the need to send it
 individually to every printer, or, to manually fetch their USB stick/other
@@ -48,6 +48,7 @@ Printers currently supported:
 
 TODO:
 
+- [ ] COREOne
 - [ ] Prusa XL
 - [ ] Prusa Mini
 - [ ] Prusa MK3

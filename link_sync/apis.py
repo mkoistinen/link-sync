@@ -33,7 +33,9 @@ class ApiResponse:
 
     __slots__ = "status_code", "payload"
 
-    def __init__(self, status_code: int, payload: Optional[object] = None):
+    def __init__(  # pyright: ignore[reportMissingSuperCall]
+        self, status_code: int, payload: Optional[object] = None
+    ):
         self.status_code = status_code
         self.payload = payload
 
@@ -46,7 +48,7 @@ class ApiResponse:
 class AbstractApi(metaclass=ABCMeta):
     """Abstractly describes the API."""
 
-    def __init__(
+    def __init__(  # pyright: ignore[reportMissingSuperCall]
         self,
         *,
         name: Optional[str] = None,
